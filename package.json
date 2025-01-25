@@ -1,0 +1,29 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@ai-sdk/deepseek": "^0.1.0",
+    "@ai-sdk/google": "^1.1.0",
+    "@aws-sdk/client-s3": "^3.732.0",
+    "@aws-sdk/s3-request-presigner": "^3.732.0",
+    "ai": "^4.1.0",
+    "axios": "^1.7.9",
+    "bullmq": "^5.35.0",
+    "dotenv": "^16.4.7",
+    "markdown-it": "^14.1.0",
+    "pdf-lib": "^1.17.1",
+    "puppeteer": "^24.1.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7"
+  }
+}
