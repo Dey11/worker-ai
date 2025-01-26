@@ -26,7 +26,9 @@ const markdownToHtml = (markdown) => {
     return md.render(markdown);
 };
 const generatePdf = (html, outputPath) => __awaiter(void 0, void 0, void 0, function* () {
-    const browser = yield puppeteer_1.default.launch();
+    const browser = yield puppeteer_1.default.launch({
+        executablePath: "/usr/bin/chromium-browser",
+    });
     const page = yield browser.newPage();
     yield page.setBypassCSP(true);
     yield page.setContent(html, {

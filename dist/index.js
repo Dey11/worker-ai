@@ -96,7 +96,7 @@ const theoryWorker = new bullmq_1.Worker(constants_1.QUEUE_NAME, (job) => __awai
     }
 }), {
     connection,
-    concurrency: 3,
+    concurrency: 4,
     removeOnComplete: {
         age: 3600, // keep up to 1 hour
         count: 200, // keep up to 1000 jobs

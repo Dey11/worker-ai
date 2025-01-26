@@ -14,7 +14,9 @@ const markdownToHtml = (markdown: string): string => {
 };
 
 const generatePdf = async (html: string, outputPath: string): Promise<void> => {
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    executablePath: "/usr/bin/chromium-browser",
+  });
   const page = await browser.newPage();
 
   await page.setBypassCSP(true);
