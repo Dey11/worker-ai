@@ -14,10 +14,10 @@ const google = createGoogleGenerativeAI({
 const deepseek = createDeepSeek({
   apiKey: process.env.DEEPSEEK_API_KEY ?? "",
 });
-const model1 = google("gemini-2.0-flash-exp");
+const model1 = google("gemini-2.0-flash-001");
 const model2 = deepseek("deepseek-chat");
 
-const MAX_TOKENS = 8192;
+const MAX_TOKENS = 8000;
 
 export const generateTheoryAction = async (
   state: z.infer<typeof jobSchema>
