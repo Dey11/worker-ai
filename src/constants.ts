@@ -1,4 +1,5 @@
-export const QUEUE_NAME = "taskQueue";
-// export const BUCKET_NAME = "test";
-export const BUCKET_NAME = "prod";
+export const QUEUE_NAME = "theoryQueue";
+export const BUCKET_NAME = "test";
+export const QNA_QUEUE_NAME = "qnaQueue";
+// export const BUCKET_NAME = "prod";
 export const MERGE_PDF_QUEUE_NAME = "mergePdfQueue";

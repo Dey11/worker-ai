@@ -7,6 +7,7 @@ export const jobSchema = z.object({
   course: z.string().optional(),
   exam: z.string().optional(),
   subject: z.string(),
+  type: z.enum(["qna", "theory"]),
   topic: z.object({
     id: z.string(),
     materialId: z.string(),

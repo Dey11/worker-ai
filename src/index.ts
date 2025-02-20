@@ -6,7 +6,12 @@ import { jobSchema } from "./zod/schema";
 import { generateTheoryAction } from "./ai/theory-generator";
 import { generatePdfFromMarkdown } from "./lib/generate-pdf";
 import { listObjectAndMerge, uploadPdfToR2 } from "./object-storage";
-import { BUCKET_NAME, MERGE_PDF_QUEUE_NAME, QUEUE_NAME } from "./constants";
+import {
+  BUCKET_NAME,
+  MERGE_PDF_QUEUE_NAME,
+  QNA_QUEUE_NAME,
+  QUEUE_NAME,
+} from "./constants";
 import axios from "axios";
 import { Queue } from "bullmq";
 
@@ -69,26 +74,32 @@ const theoryWorker = new Worker(
         }
       );
 
-      await axios.post(`${process.env.BACKEND_URL}/api/theory`, {
-        materialId: res.data.topic.materialId,
-        id: res.data.topic.id,
-        currIndex: res.data.topic.currIndex,
-        totalIndex: res.data.topic.totalIndex,
-        key: `theory/topics/${timestamp}.pdf`,
-        usage: usage,
-        success: true,
-      });
+      await axios.post(
+        `${process.env.BACKEND_URL}/api/generation/update-task`,
+        {
+          materialId: res.data.topic.materialId,
+          id: res.data.topic.id,
+          currIndex: res.data.topic.currIndex,
+          totalIndex: res.data.topic.totalIndex,
+          key: `theory/topics/${timestamp}.pdf`,
+          usage: usage,
+          success: true,
+        }
+      );
     } catch (err) {
       console.error(err);
-      await axios.post(`${process.env.BACKEND_URL}/api/theory`, {
-        materialId: job.data.topic.materialId,
-        id: job.data.topic.id,
-        currIndex: job.data.topic.currIndex,
-        totalIndex: job.data.topic.totalIndex,
-        key: "",
-        usage: 0,
-        success: false,
-      });
+      await axios.post(
+        `${process.env.BACKEND_URL}/api/generation/update-task`,
+        {
+          materialId: job.data.topic.materialId,
+          id: job.data.topic.id,
+          currIndex: job.data.topic.currIndex,
+          totalIndex: job.data.topic.totalIndex,
+          key: "",
+          usage: 0,
+          success: false,
+        }
+      );
     } finally {
       await completionQueue.add("completion", {
         materialId: job.data.topic.materialId,
@@ -105,12 +116,52 @@ const theoryWorker = new Worker(
   }
 );
 
+const qnaWorker = new Worker(
+  QNA_QUEUE_NAME,
+  async (job: Job) => {
+    try {
+      const res = jobSchema.safeParse(job.data);
+      if (!res.success) {
+        console.error(res.error);
+        throw new Error("Invalid job data");
+      }
+    } catch (err) {
+      console.error(err);
+      await axios.post(
+        `${process.env.BACKEND_URL}/api/generation/update-task`,
+        {
+          materialId: job.data.topic.materialId,
+          id: job.data.topic.id,
+          currIndex: job.data.topic.currIndex,
+          totalIndex: job.data.topic.totalIndex,
+          key: "",
+          usage: 0,
+          success: false,
+        }
+      );
+    } finally {
+      await completionQueue.add("completion", {
+        materialId: job.data.materialId,
+      });
+    }
+  },
+  {
+    connection,
+    concurrency: 3,
+    removeOnComplete: {
+      age: 3600, // keep up to 1 hour
+      count: 60, // keep up to 1000 jobs
+    },
+  }
+);
+
 const completionWorker = new Worker(
   "completionQueue",
   async (job: Job) => {
     try {
-      await axios.post(`${process.env.BACKEND_URL}/api/theory/progress`, {
+      await axios.post(`${process.env.BACKEND_URL}/api/generation/progress`, {
         materialId: job.data.materialId,
+        type: job.data.type,
       });
     } catch (err) {
       console.error(err);
