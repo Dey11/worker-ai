@@ -28,6 +28,7 @@ const markdownToHtml = (markdown) => {
 const generatePdf = (html, outputPath) => __awaiter(void 0, void 0, void 0, function* () {
     const browser = yield puppeteer_1.default.launch({
         executablePath: "/usr/bin/chromium-browser",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
     const page = yield browser.newPage();
     yield page.setBypassCSP(true);

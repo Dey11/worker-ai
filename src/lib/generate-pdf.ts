@@ -16,6 +16,7 @@ const markdownToHtml = (markdown: string): string => {
 const generatePdf = async (html: string, outputPath: string): Promise<void> => {
   const browser = await puppeteer.launch({
     executablePath: "/usr/bin/chromium-browser",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   const page = await browser.newPage();
 
