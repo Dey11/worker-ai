@@ -2,7 +2,7 @@ import { Job, Worker } from "bullmq";
 import fs from "fs";
 import dotenv from "dotenv";
 import path from "path";
-import { jobSchema } from "./zod/schema";
+import { jobSchema, qbankSchema } from "./zod/schema";
 import { generateTheoryAction } from "./ai/theory-generator";
 import { generatePdfFromMarkdown } from "./lib/generate-pdf";
 import { listObjectAndMerge, uploadPdfToR2 } from "./object-storage";
@@ -14,6 +14,7 @@ import {
 } from "./constants";
 import axios from "axios";
 import { Queue } from "bullmq";
+import { generateQnaAction } from "./ai/qna-generator";
 
 dotenv.config();
 
@@ -24,7 +25,7 @@ const connection = {
   tls: {},
 };
 
-const completionQueue = new Queue("completionQueue", {
+export const completionQueue = new Queue("completionQueue", {
   connection: {
     host: process.env.REDIS_HOST,
     port: process.env.REDIS_PORT as unknown as number,
@@ -103,12 +104,13 @@ const theoryWorker = new Worker(
     } finally {
       await completionQueue.add("completion", {
         materialId: job.data.topic.materialId,
+        type: "theory",
       });
     }
   },
   {
     connection,
-    concurrency: 4,
+    concurrency: 3,
     removeOnComplete: {
       age: 3600, // keep up to 1 hour
       count: 200, // keep up to 1000 jobs
@@ -120,29 +122,15 @@ const qnaWorker = new Worker(
   QNA_QUEUE_NAME,
   async (job: Job) => {
     try {
-      const res = jobSchema.safeParse(job.data);
+      const res = qbankSchema.safeParse(job.data);
       if (!res.success) {
         console.error(res.error);
         throw new Error("Invalid job data");
       }
+
+      await generateQnaAction(res.data);
     } catch (err) {
       console.error(err);
-      await axios.post(
-        `${process.env.BACKEND_URL}/api/generation/update-task`,
-        {
-          materialId: job.data.topic.materialId,
-          id: job.data.topic.id,
-          currIndex: job.data.topic.currIndex,
-          totalIndex: job.data.topic.totalIndex,
-          key: "",
-          usage: 0,
-          success: false,
-        }
-      );
-    } finally {
-      await completionQueue.add("completion", {
-        materialId: job.data.materialId,
-      });
     }
   },
   {
@@ -175,13 +163,17 @@ const mergePdfWorker = new Worker(
   async (job: Job) => {
     try {
       const materialId = job.data.materialId as string;
-      const key = await listObjectAndMerge(BUCKET_NAME, materialId);
-      await axios.post(`${process.env.BACKEND_URL}/api/theory/complete`, {
+      const key = await listObjectAndMerge(
+        BUCKET_NAME,
+        materialId,
+        job.data.type
+      );
+      await axios.post(`${process.env.BACKEND_URL}/api/generation/complete`, {
         materialId: materialId,
         key: key,
       });
     } catch (err) {
-      console.error(err);
+      console.error("Error in mergePdfWorker:", err);
     }
   },
   {

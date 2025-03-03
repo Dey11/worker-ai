@@ -19,7 +19,7 @@ const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const object_storage_1 = require("../object-storage");
-function mergePdfsFromR2(objects, outputBucket) {
+function mergePdfsFromR2(objects, outputBucket, type) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // Create temp directory
@@ -49,7 +49,7 @@ function mergePdfsFromR2(objects, outputBucket) {
             const outputPath = path_1.default.join(tempDir, `merged-${Date.now()}.pdf`);
             fs_1.default.writeFileSync(outputPath, mergedPdfBytes);
             // Upload to R2
-            const outputKey = `merged/theory/${Date.now()}.pdf`;
+            const outputKey = `merged/${type}/${Date.now()}.pdf`;
             yield object_storage_1.S3.send(new client_s3_1.PutObjectCommand({
                 Bucket: outputBucket,
                 Key: outputKey,

@@ -32,13 +32,13 @@ exports.S3 = new client_s3_1.S3Client({
         secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY,
     },
 });
-function listObjectAndMerge(Bucket, materialId) {
+function listObjectAndMerge(Bucket, materialId, type) {
     return __awaiter(this, void 0, void 0, function* () {
         var _a;
         try {
             const res = yield exports.S3.send(new client_s3_1.ListObjectsV2Command({
                 Bucket,
-                Prefix: `theory/topics/${materialId}/`,
+                Prefix: `${type}/topics/${materialId}/`,
             }));
             const arr = (_a = res.Contents) === null || _a === void 0 ? void 0 : _a.map((item) => item.Key);
             arr === null || arr === void 0 ? void 0 : arr.sort();
@@ -50,7 +50,7 @@ function listObjectAndMerge(Bucket, materialId) {
                 };
                 arr2.push(temp);
             });
-            const outputKey = yield mergePdfsFromR2(arr2, constants_1.BUCKET_NAME);
+            const outputKey = yield mergePdfsFromR2(arr2, constants_1.BUCKET_NAME, type);
             return outputKey;
         }
         catch (err) {
@@ -85,7 +85,7 @@ function uploadPdfToR2(filePath_1, bucket_1, key_1) {
         }
     });
 }
-function mergePdfsFromR2(objects, outputBucket) {
+function mergePdfsFromR2(objects, outputBucket, type) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // Create temp directory
@@ -115,20 +115,13 @@ function mergePdfsFromR2(objects, outputBucket) {
             const outputPath = path_1.default.join(tempDir, `merged-${Date.now()}.pdf`);
             fs_1.default.writeFileSync(outputPath, mergedPdfBytes);
             // Upload to R2
-            const outputKey = `merged/theory/${Date.now()}.pdf`;
+            const outputKey = `merged/${type}/${Date.now()}.pdf`;
             yield exports.S3.send(new client_s3_1.PutObjectCommand({
                 Bucket: outputBucket,
                 Key: outputKey,
                 Body: mergedPdfBytes,
                 ContentType: "application/pdf",
             }));
-            // Generate presigned URL for merged PDF
-            // const getCommand = new GetObjectCommand({
-            //   Bucket: outputBucket,
-            //   Key: outputKey,
-            // });
-            // const mergedUrl = await getSignedUrl(S3, getCommand, { expiresIn: 3600 });
-            // Clean up temp files
             fs_1.default.unlinkSync(outputPath);
             return outputKey;
         }

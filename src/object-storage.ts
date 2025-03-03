@@ -23,12 +23,16 @@ export const S3 = new S3Client({
   },
 });
 
-export async function listObjectAndMerge(Bucket: string, materialId: string) {
+export async function listObjectAndMerge(
+  Bucket: string,
+  materialId: string,
+  type: string
+) {
   try {
     const res = await S3.send(
       new ListObjectsV2Command({
         Bucket,
-        Prefix: `theory/topics/${materialId}/`,
+        Prefix: `${type}/topics/${materialId}/`,
       })
     );
     const arr = res.Contents?.map((item) => item.Key);
@@ -41,7 +45,7 @@ export async function listObjectAndMerge(Bucket: string, materialId: string) {
       };
       arr2.push(temp);
     });
-    const outputKey = await mergePdfsFromR2(arr2, BUCKET_NAME);
+    const outputKey = await mergePdfsFromR2(arr2, BUCKET_NAME, type);
     return outputKey;
   } catch (err) {
     console.error(err);
@@ -85,7 +89,8 @@ export async function uploadPdfToR2(
 
 export async function mergePdfsFromR2(
   objects: R2Object[],
-  outputBucket: string
+  outputBucket: string,
+  type: string
 ): Promise<string> {
   try {
     // Create temp directory
@@ -120,7 +125,7 @@ export async function mergePdfsFromR2(
     fs.writeFileSync(outputPath, mergedPdfBytes);
 
     // Upload to R2
-    const outputKey = `merged/theory/${Date.now()}.pdf`;
+    const outputKey = `merged/${type}/${Date.now()}.pdf`;
     await S3.send(
       new PutObjectCommand({
         Bucket: outputBucket,
@@ -130,14 +135,6 @@ export async function mergePdfsFromR2(
       })
     );
 
-    // Generate presigned URL for merged PDF
-    // const getCommand = new GetObjectCommand({
-    //   Bucket: outputBucket,
-    //   Key: outputKey,
-    // });
-    // const mergedUrl = await getSignedUrl(S3, getCommand, { expiresIn: 3600 });
-
-    // Clean up temp files
     fs.unlinkSync(outputPath);
 
     return outputKey;

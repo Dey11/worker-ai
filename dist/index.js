@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.completionQueue = void 0;
 const bullmq_1 = require("bullmq");
 const fs_1 = __importDefault(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -23,6 +24,7 @@ const object_storage_1 = require("./object-storage");
 const constants_1 = require("./constants");
 const axios_1 = __importDefault(require("axios"));
 const bullmq_2 = require("bullmq");
+const qna_generator_1 = require("./ai/qna-generator");
 dotenv_1.default.config();
 const connection = {
     host: process.env.REDIS_HOST || "localhost",
@@ -30,7 +32,7 @@ const connection = {
     password: process.env.REDIS_PASSWORD || "",
     tls: {},
 };
-const completionQueue = new bullmq_2.Queue("completionQueue", {
+exports.completionQueue = new bullmq_2.Queue("completionQueue", {
     connection: {
         host: process.env.REDIS_HOST,
         port: process.env.REDIS_PORT,
@@ -67,7 +69,7 @@ const theoryWorker = new bullmq_1.Worker(constants_1.QUEUE_NAME, (job) => __awai
             currindex: String(res.data.topic.currIndex),
             totalIndex: String(res.data.topic.totalIndex),
         });
-        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/theory`, {
+        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/generation/update-task`, {
             materialId: res.data.topic.materialId,
             id: res.data.topic.id,
             currIndex: res.data.topic.currIndex,
@@ -79,7 +81,7 @@ const theoryWorker = new bullmq_1.Worker(constants_1.QUEUE_NAME, (job) => __awai
     }
     catch (err) {
         console.error(err);
-        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/theory`, {
+        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/generation/update-task`, {
             materialId: job.data.topic.materialId,
             id: job.data.topic.id,
             currIndex: job.data.topic.currIndex,
@@ -90,22 +92,44 @@ const theoryWorker = new bullmq_1.Worker(constants_1.QUEUE_NAME, (job) => __awai
         });
     }
     finally {
-        yield completionQueue.add("completion", {
+        yield exports.completionQueue.add("completion", {
             materialId: job.data.topic.materialId,
+            type: "theory",
         });
     }
 }), {
     connection,
-    concurrency: 4,
+    concurrency: 3,
     removeOnComplete: {
         age: 3600, // keep up to 1 hour
         count: 200, // keep up to 1000 jobs
     },
 });
+const qnaWorker = new bullmq_1.Worker(constants_1.QNA_QUEUE_NAME, (job) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const res = schema_1.qbankSchema.safeParse(job.data);
+        if (!res.success) {
+            console.error(res.error);
+            throw new Error("Invalid job data");
+        }
+        yield (0, qna_generator_1.generateQnaAction)(res.data);
+    }
+    catch (err) {
+        console.error(err);
+    }
+}), {
+    connection,
+    concurrency: 3,
+    removeOnComplete: {
+        age: 3600, // keep up to 1 hour
+        count: 60, // keep up to 1000 jobs
+    },
+});
 const completionWorker = new bullmq_1.Worker("completionQueue", (job) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/theory/progress`, {
+        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/generation/progress`, {
             materialId: job.data.materialId,
+            type: job.data.type,
         });
     }
     catch (err) {
@@ -115,14 +139,14 @@ const completionWorker = new bullmq_1.Worker("completionQueue", (job) => __await
 const mergePdfWorker = new bullmq_1.Worker(constants_1.MERGE_PDF_QUEUE_NAME, (job) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const materialId = job.data.materialId;
-        const key = yield (0, object_storage_1.listObjectAndMerge)(constants_1.BUCKET_NAME, materialId);
-        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/theory/complete`, {
+        const key = yield (0, object_storage_1.listObjectAndMerge)(constants_1.BUCKET_NAME, materialId, job.data.type);
+        yield axios_1.default.post(`${process.env.BACKEND_URL}/api/generation/complete`, {
             materialId: materialId,
             key: key,
         });
     }
     catch (err) {
-        console.error(err);
+        console.error("Error in mergePdfWorker:", err);
     }
 }), {
     connection,

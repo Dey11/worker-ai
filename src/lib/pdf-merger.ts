@@ -16,7 +16,8 @@ interface R2Object {
 
 export async function mergePdfsFromR2(
   objects: R2Object[],
-  outputBucket: string
+  outputBucket: string,
+  type: string
 ): Promise<string> {
   try {
     // Create temp directory
@@ -51,7 +52,7 @@ export async function mergePdfsFromR2(
     fs.writeFileSync(outputPath, mergedPdfBytes);
 
     // Upload to R2
-    const outputKey = `merged/theory/${Date.now()}.pdf`;
+    const outputKey = `merged/${type}/${Date.now()}.pdf`;
     await S3.send(
       new PutObjectCommand({
         Bucket: outputBucket,
