@@ -66,6 +66,7 @@ export const generateTheoryAction = async (
     }
   } catch (err) {
     console.error(err);
-    throw new Error("Failed to generate theory");
+    return ["", 0];
+    // throw new Error("Failed to generate theory");
   }
 };
