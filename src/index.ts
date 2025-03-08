@@ -110,7 +110,7 @@ const theoryWorker = new Worker(
   },
   {
     connection,
-    concurrency: 7,
+    concurrency: 3,
     removeOnComplete: {
       age: 3600, // keep up to 1 hour
       count: 200, // keep up to 1000 jobs
@@ -135,7 +135,7 @@ const qnaWorker = new Worker(
   },
   {
     connection,
-    concurrency: 5,
+    concurrency: 2,
     removeOnComplete: {
       age: 3600, // keep up to 1 hour
       count: 60, // keep up to 1000 jobs
@@ -178,7 +178,7 @@ const mergePdfWorker = new Worker(
   },
   {
     connection,
-    concurrency: 5,
+    concurrency: 1,
     removeOnComplete: {
       age: 3600, // keep up to 1 hour
       count: 10, // keep up to 1000 jobs
