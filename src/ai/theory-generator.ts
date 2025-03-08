@@ -41,7 +41,7 @@ export const generateTheoryAction = async (
       ],
     });
 
-    if (!usage.totalTokens) {
+    if (!usage?.totalTokens) {
       const { text, usage } = await generateText({
         model: model2,
         maxTokens: MAX_TOKENS,
