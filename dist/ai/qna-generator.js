@@ -33,7 +33,7 @@ const google = (0, google_1.createGoogleGenerativeAI)({
 const deepseek = (0, deepseek_1.createDeepSeek)({
     apiKey: (_a = process.env.DEEPSEEK_API_KEY) !== null && _a !== void 0 ? _a : "",
 });
-const model1 = google("gemini-2.0-flash-exp");
+const model1 = google("gemini-2.0-flash-001");
 const model2 = deepseek("deepseek-chat");
 const MAX_TOKENS = 8000;
 const generateQnaAction = (state) => __awaiter(void 0, void 0, void 0, function* () {
