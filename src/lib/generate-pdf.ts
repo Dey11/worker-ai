@@ -19,7 +19,7 @@ const generatePdf = async (html: string, outputPath: string): Promise<void> => {
     args: [
       // "--disable-gpu",
       // "--disable-setuid-sandbox",
-      // "--no-sandbox",
+      "--no-sandbox",
       // "--no-zygote",
     ],
   });
