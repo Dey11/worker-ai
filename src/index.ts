@@ -110,7 +110,7 @@ const theoryWorker = new Worker(
   },
   {
     connection,
-    concurrency: 3,
+    concurrency: 7,
     removeOnComplete: {
       age: 3600, // keep up to 1 hour
       count: 200, // keep up to 1000 jobs
@@ -135,7 +135,7 @@ const qnaWorker = new Worker(
   },
   {
     connection,
-    concurrency: 3,
+    concurrency: 5,
     removeOnComplete: {
       age: 3600, // keep up to 1 hour
       count: 60, // keep up to 1000 jobs
