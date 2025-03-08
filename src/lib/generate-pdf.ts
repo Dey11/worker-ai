@@ -15,12 +15,13 @@ const markdownToHtml = (markdown: string): string => {
 
 const generatePdf = async (html: string, outputPath: string): Promise<void> => {
   const browser = await puppeteer.launch({
-    executablePath: "/usr/bin/chromium-browser",
+    executablePath:
+      process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome-stable",
     args: [
-      // "--disable-gpu",
-      // "--disable-setuid-sandbox",
       "--no-sandbox",
-      // "--no-zygote",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
     ],
   });
   const page = await browser.newPage();
