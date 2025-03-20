@@ -86,7 +86,7 @@ export const generateQnaAction = async (state: z.infer<typeof qbankSchema>) => {
           id: topic.id,
           currIndex: topic.currIndex,
           totalIndex: topic.totalIndex,
-          key: `qbank/topics/${newTime}.pdf`,
+          key: `qbank/topics/${materialId}/${newTime}.pdf`,
           usage: usage.totalTokens,
           success: true,
         }

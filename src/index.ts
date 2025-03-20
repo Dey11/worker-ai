@@ -5,7 +5,11 @@ import path from "path";
 import { jobSchema, qbankSchema } from "./zod/schema";
 import { generateTheoryAction } from "./ai/theory-generator";
 import { generatePdfFromMarkdown } from "./lib/generate-pdf";
-import { listObjectAndMerge, uploadPdfToR2 } from "./object-storage";
+import {
+  listObjectAndMerge,
+  mergePdfsFromR2,
+  uploadPdfToR2,
+} from "./object-storage";
 import {
   BUCKET_NAME,
   MERGE_PDF_QUEUE_NAME,
@@ -82,7 +86,7 @@ const theoryWorker = new Worker(
           id: res.data.topic.id,
           currIndex: res.data.topic.currIndex,
           totalIndex: res.data.topic.totalIndex,
-          key: `theory/topics/${timestamp}.pdf`,
+          key: `theory/topics/${res.data.topic.materialId}/${timestamp}.pdf`,
           usage: usage,
           success: true,
         }
@@ -163,14 +167,19 @@ const mergePdfWorker = new Worker(
   async (job: Job) => {
     try {
       const materialId = job.data.materialId as string;
-      const key = await listObjectAndMerge(
+      // const key = await listObjectAndMerge(
+      //   BUCKET_NAME,
+      //   materialId,
+      //   job.data.type
+      // );
+      const outputKey = await mergePdfsFromR2(
+        job.data.arrOfKeys,
         BUCKET_NAME,
-        materialId,
         job.data.type
       );
       await axios.post(`${process.env.BACKEND_URL}/api/generation/complete`, {
         materialId: materialId,
-        key: key,
+        key: outputKey,
       });
     } catch (err) {
       console.error("Error in mergePdfWorker:", err);
